@@ -1,21 +1,31 @@
-// 명세 7.2 OCR API. MVP stub.
+// 명세 7.2 / 백엔드 routers/ocr.py 매핑.
+import { apiRequest } from './client';
 
 export interface OcrExtractResult {
-  ocrSourceId: string;
-  extractedText: string;
+  ocr_source_id: string;
+  extracted_text: string;
   confidence: number;
-  documentId?: string;
+  document_id: number | null;
+  image_path: string;
 }
 
 export async function extractText(file: File, createDocument = false): Promise<OcrExtractResult> {
-  console.log('TODO: POST /api/ocr/extract', { name: file.name, createDocument });
-  return {
-    ocrSourceId: `mock-ocr-${Date.now()}`,
-    extractedText: '',
-    confidence: 0,
-  };
+  const fd = new FormData();
+  fd.append('image', file);
+  fd.append('create_document', String(createDocument));
+  return apiRequest<OcrExtractResult>('/api/ocr/extract', {
+    method: 'POST',
+    formData: fd,
+  });
+}
+
+export async function getOcrResult(ocrSourceId: string) {
+  return apiRequest<OcrExtractResult>(`/api/ocr/${ocrSourceId}`);
 }
 
 export async function confirmOcr(ocrSourceId: string, editedText: string) {
-  console.log('TODO: POST /api/ocr/{id}/confirm', { ocrSourceId, length: editedText.length });
+  return apiRequest(`/api/ocr/${ocrSourceId}/confirm`, {
+    method: 'POST',
+    body: { edited_text: editedText },
+  });
 }

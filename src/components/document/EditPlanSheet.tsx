@@ -31,6 +31,11 @@ function EditPlanSheet({ plan, commandText, onApprove, onReject }: EditPlanSheet
   }
 
   const isOpen = plan !== null;
+  const previewOnly =
+    plan !== null &&
+    plan.editOperations.length === 0 &&
+    Boolean(plan.previewText && plan.previewText.trim().length > 0);
+  const canApprove = selected.size > 0 || previewOnly;
 
   return (
     <>
@@ -96,12 +101,27 @@ function EditPlanSheet({ plan, commandText, onApprove, onReject }: EditPlanSheet
 
         {/* operations list (스크롤 영역) */}
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
-          {plan ? (
+          {plan && plan.editOperations.length > 0 ? (
             <BeforeAfterPreview
               editOperations={plan.editOperations}
               selectedIds={selected}
               onToggle={toggle}
             />
+          ) : null}
+
+          {previewOnly && plan?.previewText ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+              <p className="font-semibold text-amber-900">
+                전체 본문이 새로 작성됩니다
+              </p>
+              <p className="mt-1 text-[11px] text-amber-800">
+                기존 단락 단위 매칭이 어려워 HWPX 본문을 새 내용으로 재빌드합니다.
+                파일 형식은 그대로 HWPX로 유지됩니다.
+              </p>
+              <pre className="mt-2 max-h-[40vh] overflow-y-auto whitespace-pre-wrap break-words rounded-md bg-white p-2 text-[11px] leading-5 text-slate-800">
+                {plan.previewText}
+              </pre>
+            </div>
           ) : null}
         </div>
 
@@ -116,12 +136,16 @@ function EditPlanSheet({ plan, commandText, onApprove, onReject }: EditPlanSheet
           </button>
           <button
             type="button"
-            disabled={selected.size === 0}
+            disabled={!canApprove}
             onClick={() => onApprove(Array.from(selected))}
             className="inline-flex h-11 flex-[2] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Check size={16} aria-hidden />
-            {selected.size > 0 ? `${selected.size}건 승인` : '승인'}
+            {previewOnly
+              ? '전체 적용 (HWPX 재빌드)'
+              : selected.size > 0
+                ? `${selected.size}건 승인`
+                : '승인'}
           </button>
         </footer>
       </aside>

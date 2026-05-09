@@ -1,7 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+﻿import { useCallback, useRef, useState } from 'react';
 import { applyEdit, commandEdit } from '../api/ai';
-import { saveVoiceCommand } from '../api/voice';
-import type { CommandEditResult } from '../types/document';
+import type { CommandEditResult, EditOperation } from '../types/document';
 
 export type AiState =
   | { kind: 'idle' }
@@ -14,13 +13,21 @@ export type AiState =
 interface UseAiEditFlowParams {
   documentId: string;
   getDocumentText: () => string;
-  onApplied?: (updatedText: string) => void;
+  onApplied?: (
+    updatedText: string,
+    editOperations: EditOperation[],
+    documentId: string,
+  ) => void | Promise<void>;
 }
 
 interface UseAiEditFlowResult {
   state: AiState;
   setRecording: (recording: boolean) => void;
-  startCommand: (transcript: string, inputType: 'voice' | 'text') => Promise<void>;
+  startCommand: (
+    transcript: string,
+    inputType: 'voice' | 'text',
+    targetDocumentId?: string,
+  ) => Promise<void>;
   approve: (operationIds: string[]) => Promise<void>;
   reject: () => void;
   resetError: () => void;
@@ -35,6 +42,7 @@ export function useAiEditFlow({
   const [state, setState] = useState<AiState>({ kind: 'idle' });
   const [error, setError] = useState<string | null>(null);
   const stateRef = useRef<AiState>(state);
+  const activeDocumentIdRef = useRef<string>(documentId);
   stateRef.current = state;
   const doneTimerRef = useRef<number | null>(null);
 
@@ -47,9 +55,12 @@ export function useAiEditFlow({
   }, []);
 
   const startCommand = useCallback(
-    async (transcript: string, inputType: 'voice' | 'text') => {
+    async (transcript: string, inputType: 'voice' | 'text', targetDocumentId?: string) => {
+      void inputType;
       setError(null);
       const trimmed = transcript.trim();
+      const activeDocumentId = targetDocumentId ?? documentId;
+      activeDocumentIdRef.current = activeDocumentId;
       if (!trimmed) {
         setState({ kind: 'idle' });
         return;
@@ -58,17 +69,15 @@ export function useAiEditFlow({
       setState({ kind: 'thinking', commandText: trimmed });
 
       try {
-        void saveVoiceCommand({ documentId, transcript: trimmed, inputType });
-
         const plan = await commandEdit({
-          documentId,
+          documentId: activeDocumentId,
           documentText: getDocumentText(),
           commandText: trimmed,
         });
 
         setState({ kind: 'reviewing', commandText: trimmed, plan });
       } catch (caught) {
-        const message = caught instanceof Error ? caught.message : 'AI 명령 처리 실패';
+        const message = caught instanceof Error ? caught.message : 'AI 紐낅졊 泥섎━ ?ㅽ뙣';
         setError(message);
         setState({ kind: 'idle' });
       }
@@ -83,7 +92,9 @@ export function useAiEditFlow({
 
       const plan = current.plan;
       const ops = plan.editOperations.filter((op) => operationIds.includes(op.operationId));
-      if (ops.length === 0) return;
+      // ops가 비어 있어도 plan.previewText가 있으면 HWPX 재빌드 경로로 적용한다.
+      const hasPreviewText = Boolean(plan.previewText && plan.previewText.trim().length > 0);
+      if (ops.length === 0 && !hasPreviewText) return;
 
       setState({ kind: 'applying', plan });
 
@@ -92,9 +103,10 @@ export function useAiEditFlow({
           documentId,
           editOperations: ops,
           currentText: getDocumentText(),
+          previewText: plan.previewText,
         });
 
-        onApplied?.(result.updatedText);
+        await onApplied?.(result.updatedText, ops, activeDocumentIdRef.current || documentId);
 
         setState({ kind: 'done', summary: plan.summary });
 
@@ -104,7 +116,7 @@ export function useAiEditFlow({
           doneTimerRef.current = null;
         }, 2000);
       } catch (caught) {
-        const message = caught instanceof Error ? caught.message : 'AI 적용 실패';
+        const message = caught instanceof Error ? caught.message : 'AI ?곸슜 ?ㅽ뙣';
         setError(message);
         setState({ kind: 'idle' });
       }

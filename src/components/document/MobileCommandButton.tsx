@@ -65,10 +65,12 @@ function MobileCommandButton({ aiState, onCommand, onRecordingChange }: MobileCo
 
       recognition.onresult = (event) => {
         const transcript = event.results[0]?.[0]?.transcript ?? '';
+        onRecordingChange?.(false);
         if (transcript.trim()) {
           onCommand(transcript.trim(), 'voice');
         } else {
-          onRecordingChange?.(false);
+          setErrorMessage('음성을 인식하지 못했습니다. 다시 말하거나 텍스트로 입력해보세요.');
+          setIsModalOpen(true);
         }
       };
       recognition.onerror = (event) => {
@@ -78,6 +80,7 @@ function MobileCommandButton({ aiState, onCommand, onRecordingChange }: MobileCo
       };
       recognition.onend = () => {
         recognitionRef.current = null;
+        onRecordingChange?.(false);
       };
 
       recognitionRef.current = recognition;

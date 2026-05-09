@@ -18,6 +18,7 @@ export type EditOperationType =
   | 'replace_text'
   | 'replace_section'
   | 'rewrite_document'
+  | 'insert_paragraph'
   | 'append_paragraph'
   | 'update_field'
   | 'update_table_text'
