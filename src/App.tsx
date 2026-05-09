@@ -2,16 +2,18 @@ import { useState } from 'react';
 import MobileScanPage from './pages/MobileScanPage';
 import EditorPage from './pages/EditorPage';
 import ArchivePage from './pages/ArchivePage';
+import ProfilePage from './pages/ProfilePage';
 
 // 라우터 미연결 상태에서 기능 확인을 위한 간단한 탭바.
 // 실제 라우팅은 frontend/src/routes에서 추후 연결 예정.
 
-type TabKey = 'scan' | 'editor' | 'archive';
+type TabKey = 'scan' | 'editor' | 'archive' | 'profile';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'scan', label: '모바일 스캔' },
   { key: 'editor', label: '편집기' },
   { key: 'archive', label: '아카이브' },
+  { key: 'profile', label: '프로필' },
 ];
 
 function App() {
@@ -43,6 +45,7 @@ function App() {
         {tab === 'scan' && <MobileScanPage />}
         {tab === 'editor' && <EditorPage />}
         {tab === 'archive' && <ArchivePage />}
+        {tab === 'profile' && <ProfilePage />}
       </div>
     </div>
   );
