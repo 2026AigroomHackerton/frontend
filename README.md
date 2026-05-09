@@ -1,5 +1,13 @@
 # AI Mobile Document Assistant Frontend
 
+## Kakao Localhost Share Checklist
+
+- Kakao Developers > JavaScript SDK domain: `http://localhost:5173`
+- Kakao Developers > Product link management > Web domain: `http://localhost:5173`
+- `.env`: `VITE_KAKAO_JAVASCRIPT_KEY=JavaScript key`
+- Restart `npm run dev` after changing `.env`.
+- Open the app at exactly `http://localhost:5173`.
+
 문서를 찍고, 말로 수정하는 AI 기반 모바일 문서 비서 프로젝트의 프론트엔드 레포입니다.
 
 ## 프로젝트 개요

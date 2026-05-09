@@ -1,52 +1,44 @@
-import { useState } from 'react';
-import ArchivePage, { type ArchiveView } from './pages/ArchivePage';
-import ProfilePage from './pages/ProfilePage';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import AppLayout from './components/layout/AppLayout';
+import ArchivePage from './pages/ArchivePage';
+import CameraCapturePage from './pages/CameraCapturePage';
 import DocumentUploadPage from './pages/DocumentUploadPage';
+import EditorPage from './pages/EditorPage';
+import PersonalPage from './pages/PersonalPage';
+import ProfilePage from './pages/ProfilePage';
+import SharedPage from './pages/SharedPage';
 
-type PageKey = 'archive' | 'profile' | 'upload';
+const editorRoutes = [
+  { path: '/editor', element: <EditorPage /> },
+  { path: '/editor/:documentId', element: <EditorPage /> },
+] as const;
 
-const SIDEBAR_TO_VIEW: Record<string, ArchiveView> = {
-  dashboard: 'all',
-  personal: 'personal',
-  important: 'important',
-  recent: 'recent',
-  'shared-docs': 'shared',
-  trash: 'trash',
-};
+const layoutRoutes = [
+  { path: '/archive/:view', element: <ArchivePage /> },
+  { path: '/personal', element: <PersonalPage /> },
+  { path: '/shared', element: <SharedPage /> },
+  { path: '/upload', element: <DocumentUploadPage /> },
+  { path: '/camera', element: <CameraCapturePage /> },
+  { path: '/profile', element: <ProfilePage /> },
+] as const;
 
 function App() {
-  const [page, setPage] = useState<PageKey>('archive');
-  const [view, setView] = useState<ArchiveView>('all');
-
-  const handleNavigate = (key: string) => {
-    if (key === 'upload') {
-      setPage('upload');
-      return;
-    }
-    if (key === 'profile') {
-      setPage('profile');
-      return;
-    }
-    const nextView = SIDEBAR_TO_VIEW[key];
-    if (nextView) {
-      setPage('archive');
-      setView(nextView);
-    }
-  };
-
   return (
-    <>
-      {page === 'archive' && (
-        <ArchivePage view={view} onNavigate={handleNavigate} />
-      )}
-      {page === 'profile' && (
-        <ProfilePage
-          onBack={() => setPage('archive')}
-          onNavigate={handleNavigate}
-        />
-      )}
-      {page === 'upload' && <DocumentUploadPage onNavigate={handleNavigate} />}
-    </>
+    <BrowserRouter>
+      <Routes>
+        {editorRoutes.map((route) => (
+          <Route key={route.path} path={route.path} element={route.element} />
+        ))}
+
+        <Route element={<AppLayout />}>
+          <Route index element={<Navigate to="/archive/all" replace />} />
+          {layoutRoutes.map((route) => (
+            <Route key={route.path} path={route.path} element={route.element} />
+          ))}
+          <Route path="*" element={<Navigate to="/archive/all" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

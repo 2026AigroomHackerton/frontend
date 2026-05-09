@@ -1,12 +1,31 @@
-// 명세 7.5 아카이브 API. MVP stub.
+// 명세 7.5 / 백엔드 routers/archive.py 매핑.
+import { apiRequest } from './client';
 
-export interface ArchiveSearchInput {
-  query: string;
-  folderId?: string;
-  category?: string;
+export interface ArchiveLocalCard {
+  id: number;
+  title: string;
+  source_type: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export async function searchArchive(input: ArchiveSearchInput) {
-  console.log('TODO: GET /api/archive/search', input);
-  return { results: [] };
+export interface ArchiveLocalGroup {
+  folder_id: number | null;
+  documents: ArchiveLocalCard[];
+}
+
+export interface ArchiveExternalCard {
+  id: string;
+  title: string;
+  source_type: string;
+  status: string;
+}
+
+export interface ArchiveResponse {
+  local: ArchiveLocalGroup[];
+  external: ArchiveExternalCard[];
+}
+
+export async function getArchive(): Promise<ArchiveResponse> {
+  return apiRequest<ArchiveResponse>('/api/archive');
 }

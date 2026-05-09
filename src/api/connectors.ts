@@ -1,23 +1,37 @@
-// 명세 7.5 외부 저장소 connector API. MVP는 더미.
-
-export type ConnectorProvider = 'local' | 'google_drive' | 'notion' | 'mock';
+// 백엔드 routers/storage.py 매핑.
+import { apiRequest } from './client';
 
 export interface ConnectorStatus {
-  provider: ConnectorProvider;
-  displayName: string;
-  status: 'connected' | 'disconnected' | 'mock';
+  provider: string;
+  display_name?: string;
+  status: string;
 }
 
 export async function listConnectors(): Promise<ConnectorStatus[]> {
-  console.log('TODO: GET /api/connectors');
-  return [
-    { provider: 'local', displayName: '로컬 업로드', status: 'connected' },
-    { provider: 'google_drive', displayName: 'Google Drive', status: 'mock' },
-    { provider: 'notion', displayName: 'Notion', status: 'mock' },
-  ];
+  const result = await apiRequest<ConnectorStatus[] | { connectors: ConnectorStatus[] }>(
+    '/api/connectors',
+  );
+  return Array.isArray(result) ? result : result.connectors;
 }
 
-export async function mockImport(provider: ConnectorProvider) {
-  console.log('TODO: POST /api/connectors/mock-import', provider);
-  return { externalDocumentId: `mock-ext-${Date.now()}` };
+export async function listProviders() {
+  return apiRequest('/api/storage/providers');
+}
+
+export interface ExternalImportResult {
+  imported_document_id?: string | null;
+  title: string;
+  source_type: string;
+  extracted_text?: string;
+  status: string;
+}
+
+export async function importExternalDocument(
+  provider: 'google_drive' | 'notion',
+): Promise<ExternalImportResult> {
+  const path =
+    provider === 'google_drive'
+      ? '/api/connectors/google-drive/import'
+      : '/api/connectors/notion/import';
+  return apiRequest<ExternalImportResult>(path, { method: 'POST', body: {} });
 }

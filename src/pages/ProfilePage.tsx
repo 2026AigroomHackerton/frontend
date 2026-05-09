@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Sidebar from '../components/archive/Sidebar';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import StatsCards from '../components/profile/StatsCards';
 import BasicInfoForm, {
@@ -46,13 +46,13 @@ function countFilledFields(data: ProfileFormData): number {
   return count;
 }
 
-type ProfilePageProps = {
-  onBack?: () => void;
-  onNavigate?: (key: string) => void;
-};
+interface LayoutContext {
+  openSidebar: () => void;
+}
 
-function ProfilePage({ onBack, onNavigate }: ProfilePageProps = {}) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+function ProfilePage() {
+  const navigate = useNavigate();
+  const { openSidebar } = useOutletContext<LayoutContext>();
   const [formData, setFormData] = useState<ProfileFormData>(EMPTY_DATA);
   const [certInput, setCertInput] = useState('');
 
@@ -110,21 +110,13 @@ function ProfilePage({ onBack, onNavigate }: ProfilePageProps = {}) {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar
-        activeKey="profile"
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onSelect={onNavigate}
+    <>
+      <ProfileHeader
+        onBack={() => navigate('/archive/all')}
+        onOpenSidebar={openSidebar}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <ProfileHeader
-          onBack={onBack}
-          onOpenSidebar={() => setSidebarOpen(true)}
-        />
-
-        <div className="flex-1 px-4 py-6 sm:px-8">
+      <div className="flex-1 px-4 py-6 sm:px-8">
           <StatsCards
             registeredCount={filledCount}
             registeredTotal={10}
@@ -152,8 +144,7 @@ function ProfilePage({ onBack, onNavigate }: ProfilePageProps = {}) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </>
   );
 }
 
