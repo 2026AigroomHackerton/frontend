@@ -1,4 +1,5 @@
 const LOCALHOST_ORIGIN = 'http://localhost:5173';
+const DEPLOYED_ORIGIN = 'https://frontend-pnyn.onrender.com';
 const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js';
 const KAKAO_SCRIPT_ID = 'kakao-js-sdk';
 
@@ -22,20 +23,14 @@ export interface KakaoTextShareInput {
 }
 
 export async function sendKakaoTextShare(input: KakaoTextShareInput): Promise<void> {
-  const kakaoKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY as string | undefined;
+  const kakaoKey = getKakaoJavascriptKey();
+  const linkOrigin = getKakaoLinkOrigin();
 
   console.log('current origin:', window.location.origin);
-  console.log('expected Kakao origin:', LOCALHOST_ORIGIN);
+  console.log('kakao link origin:', linkOrigin);
   console.log('kakao key exists:', Boolean(kakaoKey));
   console.log('kakao key preview:', previewKey(kakaoKey));
   console.log('kakao initialized before init:', window.Kakao?.isInitialized?.());
-
-  if (window.location.origin !== LOCALHOST_ORIGIN) {
-    const message = `Kakao localhost test must run at ${LOCALHOST_ORIGIN}. Current origin: ${window.location.origin}`;
-    console.warn(message);
-    alert(message);
-    throw new Error(message);
-  }
 
   const kakao = await loadKakaoSdk(kakaoKey);
   console.log('kakao initialized after init:', kakao.isInitialized());
@@ -47,30 +42,43 @@ export async function sendKakaoTextShare(input: KakaoTextShareInput): Promise<vo
   kakao.Share.sendDefault({
     objectType: 'feed',
     content: {
-      title: input.title || 'Kakao localhost test',
-      description: input.description || 'localhost Kakao share test',
+      title: input.title || 'Kakao share',
+      description: input.description || 'Kakao share test',
       imageUrl:
         'https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_medium.png',
       link: {
-        mobileWebUrl: LOCALHOST_ORIGIN,
-        webUrl: LOCALHOST_ORIGIN,
+        mobileWebUrl: linkOrigin,
+        webUrl: linkOrigin,
       },
     },
     buttons: [
       {
         title: 'Open web',
         link: {
-          mobileWebUrl: LOCALHOST_ORIGIN,
-          webUrl: LOCALHOST_ORIGIN,
+          mobileWebUrl: linkOrigin,
+          webUrl: linkOrigin,
         },
       },
     ],
   });
 }
 
+function getKakaoJavascriptKey(): string | undefined {
+  return (
+    import.meta.env.VITE_KAKAO_JS_KEY ||
+    import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY
+  ) as string | undefined;
+}
+
+function getKakaoLinkOrigin(): string {
+  if (window.location.origin === LOCALHOST_ORIGIN) return LOCALHOST_ORIGIN;
+  if (window.location.origin === DEPLOYED_ORIGIN) return DEPLOYED_ORIGIN;
+  return window.location.origin;
+}
+
 async function loadKakaoSdk(kakaoKey: string | undefined): Promise<KakaoSdk> {
   if (!kakaoKey) {
-    throw new Error('VITE_KAKAO_JAVASCRIPT_KEY is not set.');
+    throw new Error('VITE_KAKAO_JS_KEY or VITE_KAKAO_JAVASCRIPT_KEY is not set.');
   }
 
   if (!window.Kakao) {

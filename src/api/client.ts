@@ -1,5 +1,4 @@
-// 백엔드 공통 응답 envelope: { success, data, message, error }
-// vite.config의 proxy로 /api → http://localhost:8000 (백엔드 FastAPI)
+const DEPLOYED_BACKEND_URL = 'https://backend-ih3q.onrender.com';
 
 export interface ApiEnvelope<T> {
   success: boolean;
@@ -11,6 +10,7 @@ export interface ApiEnvelope<T> {
 export class ApiError extends Error {
   code: string;
   status: number;
+
   constructor(message: string, code: string, status: number) {
     super(message);
     this.name = 'ApiError';
@@ -27,11 +27,20 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+function getDefaultApiBaseUrl(): string {
+  if (typeof window === 'undefined') return '';
+  return window.location.hostname.endsWith('.onrender.com') ? DEPLOYED_BACKEND_URL : '';
+}
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl()).replace(
+  /\/+$/,
+  '',
+);
 
 export function buildApiUrl(path: string, query?: RequestOptions['query']): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   let url = `${API_BASE_URL}${normalizedPath}`;
+
   if (query) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
@@ -41,6 +50,7 @@ export function buildApiUrl(path: string, query?: RequestOptions['query']): stri
     const qs = params.toString();
     if (qs) url += `?${qs}`;
   }
+
   return url;
 }
 
@@ -50,12 +60,10 @@ export async function apiRequest<T = unknown>(
 ): Promise<T> {
   const { method = 'GET', body, formData, query, signal } = options;
   const url = buildApiUrl(path, query);
-
   const init: RequestInit = { method, signal };
 
   if (formData) {
     init.body = formData;
-    // multipart는 브라우저가 boundary 자동 설정 — Content-Type 직접 안 둠
   } else if (body !== undefined) {
     init.headers = { 'Content-Type': 'application/json' };
     init.body = JSON.stringify(body);
@@ -65,17 +73,23 @@ export async function apiRequest<T = unknown>(
   try {
     response = await fetch(url, init);
   } catch (caught) {
-    const message = caught instanceof Error ? caught.message : '네트워크 오류';
-    throw new ApiError(`서버에 연결할 수 없어요: ${message}`, 'NETWORK_ERROR', 0);
+    const message = caught instanceof Error ? caught.message : 'network error';
+    throw new ApiError(`서버에 연결할 수 없습니다. ${message}`, 'NETWORK_ERROR', 0);
   }
 
-  // 본문이 비어있을 수도 있음 (DELETE 등)
   const text = await response.text();
   let payload: ApiEnvelope<T> | null = null;
+
   if (text) {
     try {
       payload = JSON.parse(text) as ApiEnvelope<T>;
     } catch {
+      console.error('Invalid API response', {
+        url,
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+        preview: text.slice(0, 200),
+      });
       throw new ApiError(
         `응답 형식이 올바르지 않습니다 (HTTP ${response.status})`,
         'INVALID_RESPONSE',

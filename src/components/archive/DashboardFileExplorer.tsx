@@ -17,6 +17,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ApiError } from '../../api/client';
+import { buildApiUrl } from '../../api/client';
 import { getArchive, type ArchiveExternalCard, type ArchiveLocalCard } from '../../api/archive';
 
 type ViewMode = 'list' | 'grid';
@@ -153,7 +154,7 @@ function compareFiles(a: DashboardFile, b: DashboardFile, key: SortKey): number 
 
 function downloadFilePlaceholder(file: DashboardFile) {
   if (!file.documentId) return;
-  window.open(`/api/documents/${file.documentId}/file`, '_blank');
+  window.open(buildApiUrl(`/api/documents/${file.documentId}/file`), '_blank');
 }
 
 type ActionMenuProps = {
