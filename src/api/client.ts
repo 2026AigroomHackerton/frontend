@@ -27,8 +27,11 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-function buildUrl(path: string, query?: RequestOptions['query']): string {
-  let url = path.startsWith('/') ? path : `/${path}`;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+
+export function buildApiUrl(path: string, query?: RequestOptions['query']): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  let url = `${API_BASE_URL}${normalizedPath}`;
   if (query) {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query)) {
@@ -46,7 +49,7 @@ export async function apiRequest<T = unknown>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { method = 'GET', body, formData, query, signal } = options;
-  const url = buildUrl(path, query);
+  const url = buildApiUrl(path, query);
 
   const init: RequestInit = { method, signal };
 

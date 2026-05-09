@@ -1,5 +1,5 @@
 // 명세 7.1 / 백엔드 routers/documents.py 매핑.
-import { ApiError, apiRequest } from './client';
+import { ApiError, apiRequest, buildApiUrl } from './client';
 
 export interface DocumentMeta {
   id: number;
@@ -92,7 +92,7 @@ function getFilenameFromDisposition(disposition: string | null): string | null {
 }
 
 export async function getDocumentFile(documentId: number, fallbackName: string): Promise<File> {
-  const response = await fetch(`/api/documents/${documentId}/file`);
+  const response = await fetch(buildApiUrl(`/api/documents/${documentId}/file`));
   if (!response.ok) {
     throw new ApiError('원본 파일을 불러오지 못했습니다.', 'FILE_LOAD_FAILED', response.status);
   }
@@ -130,7 +130,7 @@ export async function createHwpxFromImage(file: File): Promise<File> {
 
   let response: Response;
   try {
-    response = await fetch('/api/documents/image-to-hwpx', {
+    response = await fetch(buildApiUrl('/api/documents/image-to-hwpx'), {
       method: 'POST',
       body: fd,
     });
