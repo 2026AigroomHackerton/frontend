@@ -1,10 +1,4 @@
-import {
-  FilePlus,
-  Sparkles,
-  Smartphone,
-  UploadCloud,
-  type LucideIcon,
-} from 'lucide-react';
+import { FilePlus, UploadCloud, type LucideIcon } from 'lucide-react';
 
 type QuickAction = {
   key: string;
@@ -23,25 +17,11 @@ const ACTIONS: QuickAction[] = [
     gradient: 'from-[#3b82f6] to-[#2563eb]',
   },
   {
-    key: 'ai',
-    label: 'AI 추천 작성',
-    desc: '템플릿 기반 자동 생성',
-    icon: Sparkles,
-    gradient: 'from-[#8b5cf6] to-[#7c3aed]',
-  },
-  {
     key: 'upload',
     label: '문서 업로드',
     desc: 'HWPX 파일 가져오기',
     icon: UploadCloud,
     gradient: 'from-[#06b6d4] to-[#0891b2]',
-  },
-  {
-    key: 'mobile',
-    label: '모바일 스캔',
-    desc: '문서 촬영으로 입력',
-    icon: Smartphone,
-    gradient: 'from-emerald-500 to-emerald-600',
   },
 ];
 
@@ -53,7 +33,7 @@ function QuickStart() {
           빠른 시작
         </h2>
       </header>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {ACTIONS.map((action) => {
           const Icon = action.icon;
           return (

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Sidebar from '../components/archive/Sidebar';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import StatsCards from '../components/profile/StatsCards';
 import BasicInfoForm, {
@@ -8,13 +9,13 @@ import AIInfoPanel from '../components/profile/AIInfoPanel';
 import FrequentItemsPanel from '../components/profile/FrequentItemsPanel';
 
 const SAMPLE_DATA: ProfileFormData = {
-  nameKo: '김훈진',
-  nameEn: 'Kim Hunjin',
+  nameKo: '양희승',
+  nameEn: 'Yang Heeseung',
   address: '대구광역시 수성구 달구벌대로 2450',
   gender: '남성',
   phone: '010-1234-5678',
   rrn: '900101-1******',
-  email: 'hunjin@example.com',
+  email: 'heeseung@example.com',
   certifications: ['정보처리기사', 'AWS SAA', 'SQLD'],
   job: '연암공대 소프트웨어학과',
 };
@@ -45,8 +46,14 @@ function countFilledFields(data: ProfileFormData): number {
   return count;
 }
 
-function ProfilePage() {
-  const [formData, setFormData] = useState<ProfileFormData>(SAMPLE_DATA);
+type ProfilePageProps = {
+  onBack?: () => void;
+  onNavigate?: (key: string) => void;
+};
+
+function ProfilePage({ onBack, onNavigate }: ProfilePageProps = {}) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [formData, setFormData] = useState<ProfileFormData>(EMPTY_DATA);
   const [certInput, setCertInput] = useState('');
 
   const handleChangeField = <K extends keyof ProfileFormData>(
@@ -103,34 +110,46 @@ function ProfilePage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8fafc]">
-      <ProfileHeader />
+    <div className="flex min-h-screen bg-[#f8fafc]">
+      <Sidebar
+        activeKey="profile"
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onSelect={onNavigate}
+      />
 
-      <div className="flex-1 px-8 py-6">
-        <StatsCards
-          registeredCount={filledCount}
-          registeredTotal={10}
-          recommendableDocs={24}
-          lastModifiedDate="2026.05.09"
-          lastModifiedTime="오전 10:32"
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ProfileHeader
+          onBack={onBack}
+          onOpenSidebar={() => setSidebarOpen(true)}
         />
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <BasicInfoForm
-            formData={formData}
-            certInput={certInput}
-            onChangeField={handleChangeField}
-            onChangeCertInput={setCertInput}
-            onAddCertification={handleAddCert}
-            onRemoveCertification={handleRemoveCert}
-            onSave={handleSave}
-            onReset={handleReset}
-            onLoadSample={handleLoadSample}
+        <div className="flex-1 px-4 py-6 sm:px-8">
+          <StatsCards
+            registeredCount={filledCount}
+            registeredTotal={10}
+            recommendableDocs={0}
+            lastModifiedDate="2026.05.09"
+            lastModifiedTime="오전 10:32"
           />
 
-          <div className="space-y-6">
-            <AIInfoPanel />
-            <FrequentItemsPanel items={frequentItems} />
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+            <BasicInfoForm
+              formData={formData}
+              certInput={certInput}
+              onChangeField={handleChangeField}
+              onChangeCertInput={setCertInput}
+              onAddCertification={handleAddCert}
+              onRemoveCertification={handleRemoveCert}
+              onSave={handleSave}
+              onReset={handleReset}
+              onLoadSample={handleLoadSample}
+            />
+
+            <div className="space-y-6">
+              <AIInfoPanel />
+              <FrequentItemsPanel items={frequentItems} />
+            </div>
           </div>
         </div>
       </div>

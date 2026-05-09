@@ -1,9 +1,13 @@
+import { useEffect, useRef, useState } from 'react';
 import {
-  Bell,
   Camera,
-  Settings,
-  Share2,
+  FolderPlus,
+  Home,
+  Plus,
+  Star,
+  Upload,
   User,
+  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -14,45 +18,103 @@ type FooterItem = {
 };
 
 const ITEMS: FooterItem[] = [
-  { key: 'personal', label: '개인', icon: User },
-  { key: 'share', label: '공유', icon: Share2 },
-  { key: 'camera', label: '카메라', icon: Camera },
-  { key: 'notification', label: '알림', icon: Bell },
-  { key: 'settings', label: '설정', icon: Settings },
+  { key: 'dashboard', label: '홈', icon: Home },
+  { key: 'personal', label: '개인 문서함', icon: User },
+  { key: 'important', label: '중요 문서함', icon: Star },
+  { key: 'shared-docs', label: '공유 문서함', icon: Users },
 ];
+
+type FooterAction = 'upload' | 'camera' | 'folder';
 
 type MobileFooterProps = {
   activeKey?: string;
   onSelect?: (key: string) => void;
+  onAction?: (action: FooterAction) => void;
 };
 
-function MobileFooter({ activeKey = 'personal', onSelect }: MobileFooterProps) {
+function MobileFooter({ activeKey, onSelect, onAction }: MobileFooterProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  const handleAction = (action: FooterAction) => {
+    setMenuOpen(false);
+    onAction?.(action);
+  };
+
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-white/5 bg-[#0a1128]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(15,23,42,0.06)] lg:hidden"
       aria-label="모바일 하단 네비게이션"
     >
-      <ul className="grid grid-cols-5">
+      <div
+        ref={menuRef}
+        className="pointer-events-none absolute inset-x-0 -top-14 grid grid-cols-4"
+      >
+        <div />
+        <div />
+        <div />
+        <div className="pointer-events-auto relative flex flex-col items-center">
+          {menuOpen ? (
+            <div
+              className="absolute bottom-full left-1/2 mb-2 w-44 -translate-x-1/2 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
+              role="menu"
+            >
+              <button
+                type="button"
+                onClick={() => handleAction('upload')}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <Upload className="h-4 w-4 text-slate-500" />
+                파일 업로드
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAction('camera')}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <Camera className="h-4 w-4 text-slate-500" />
+                사진 촬영
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAction('folder')}
+                className="flex w-full items-center gap-2 border-t border-gray-100 px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <FolderPlus className="h-4 w-4 text-slate-500" />
+                폴더 만들기
+              </button>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((value) => !value)}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 transition-transform hover:bg-blue-700 active:scale-95"
+            aria-label="새로 만들기"
+          >
+            <Plus
+              className={`h-5 w-5 transition-transform ${menuOpen ? 'rotate-45' : ''}`}
+            />
+          </button>
+        </div>
+      </div>
+
+      <ul className="grid grid-cols-4">
         {ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = item.key === activeKey;
-          const isCenter = item.key === 'camera';
-
-          if (isCenter) {
-            return (
-              <li key={item.key} className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => onSelect?.(item.key)}
-                  className="-mt-5 flex h-14 w-14 flex-col items-center justify-center rounded-full bg-[#3b82f6] text-white shadow-lg shadow-[#3b82f6]/40 transition-transform hover:-translate-y-0.5"
-                  aria-label={item.label}
-                >
-                  <Icon className="h-6 w-6" />
-                </button>
-              </li>
-            );
-          }
-
           return (
             <li key={item.key}>
               <button
@@ -60,8 +122,8 @@ function MobileFooter({ activeKey = 'personal', onSelect }: MobileFooterProps) {
                 onClick={() => onSelect?.(item.key)}
                 className={`flex w-full flex-col items-center gap-1 py-2.5 text-xs transition-colors ${
                   isActive
-                    ? 'text-[#60a5fa]'
-                    : 'text-[#94a3b8] hover:text-white'
+                    ? 'text-blue-600'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <Icon className="h-5 w-5" />
