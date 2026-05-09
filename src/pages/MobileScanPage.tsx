@@ -1,12 +1,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-const MobileScanPage: React.FC = () => {
+type ImageSource = 'camera' | 'upload';
+
+interface MobileScanPageProps {
+  onOpenEditor?: (payload: { title: string; content: string }) => void;
+}
+
+const MobileScanPage: React.FC<MobileScanPageProps> = ({ onOpenEditor }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [imageSource, setImageSource] = useState<ImageSource | null>(null);
   const [ocrText, setOcrText] = useState<string>('');
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrError, setOcrError] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   const attachStream = (node: HTMLVideoElement, mediaStream: MediaStream) => {
@@ -31,6 +42,11 @@ const MobileScanPage: React.FC = () => {
       return;
     }
 
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrorMessage('이 브라우저는 카메라를 지원하지 않습니다. (HTTPS 또는 localhost 필요)');
+      return;
+    }
+
     const tryGetCamera = async (constraints: MediaStreamConstraints) => {
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = mediaStream;
@@ -40,11 +56,6 @@ const MobileScanPage: React.FC = () => {
         attachStream(videoRef.current, mediaStream);
       }
     };
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setErrorMessage('이 브라우저는 카메라를 지원하지 않습니다. (HTTPS 또는 localhost 필요)');
-      return;
-    }
 
     try {
       await tryGetCamera({ video: { facingMode: { ideal: 'environment' } } });
@@ -82,36 +93,90 @@ const MobileScanPage: React.FC = () => {
         ctx.drawImage(video, 0, 0);
         const dataUrl = canvas.toDataURL('image/png');
         setCapturedImage(dataUrl);
+        setImageSource('camera');
+        setOcrText('');
+        setOcrError('');
         stopCamera();
       }
     }
   };
 
+  const openFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('이미지 파일만 업로드할 수 있습니다.');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        setCapturedImage(result);
+        setImageSource('upload');
+        setOcrText('');
+        setOcrError('');
+        setErrorMessage('');
+      }
+    };
+    reader.onerror = () => {
+      setErrorMessage('이미지를 읽는 중 오류가 발생했습니다.');
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const resetImage = () => {
+    setCapturedImage(null);
+    setImageSource(null);
+    setOcrText('');
+    setOcrError('');
+  };
+
   const saveImage = () => {
     if (capturedImage) {
-      // 실제로는 서버에 저장하거나 다운로드 기능 구현
-      // 현재는 mock으로 alert 표시
       alert('이미지가 저장되었습니다!');
       console.log('저장된 이미지:', capturedImage);
     }
   };
 
-  const runMockOCR = () => {
+  const runMockOCR = async () => {
     if (!capturedImage) {
-      setErrorMessage('먼저 이미지를 촬영하세요.');
+      setOcrError('먼저 이미지를 촬영하거나 업로드해 주세요.');
       return;
     }
-    const mockText = `2026학년도 가정통신문
+
+    setOcrLoading(true);
+    setOcrError('');
+    setOcrText('');
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      const mockText = `2026학년도 가정통신문
 
 안녕하세요.
-본 문서는 카메라로 촬영된 이미지에서 추출된 OCR 결과 예시입니다.
+본 문서는 ${imageSource === 'upload' ? '업로드된' : '카메라로 촬영된'} 이미지에서 추출된 OCR 결과 예시입니다.
 
 제목: 학교 행사 안내
 일시: 2026년 5월 9일
 장소: 본관 강당
 내용: 학생 대상 AI 문서 작성 서비스 시연 및 안내`;
-    setOcrText(mockText);
-    setErrorMessage('');
+
+      setOcrText(mockText);
+    } catch (error) {
+      console.error('OCR 실행 실패:', error);
+      setOcrError('텍스트 추출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setOcrLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -128,19 +193,39 @@ const MobileScanPage: React.FC = () => {
     }
   };
 
+  const retakeLabel = imageSource === 'upload' ? '다시 선택' : '다시 촬영';
+  const retakeAction = imageSource === 'upload' ? openFilePicker : startCamera;
+
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-950">
       <section className="mx-auto max-w-3xl">
         <h1 className="text-3xl font-semibold">모바일 문서 스캔</h1>
         <div className="mt-6">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
           {!cameraActive && !capturedImage && (
-            <button
-              onClick={startCamera}
-              className="px-4 py-2 bg-blue-500 text-white rounded"
-            >
-              카메라 시작
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={startCamera}
+                className="px-4 py-2 bg-blue-500 text-white rounded"
+              >
+                카메라 시작
+              </button>
+              <button
+                onClick={openFilePicker}
+                className="px-4 py-2 bg-indigo-500 text-white rounded"
+              >
+                이미지 업로드
+              </button>
+            </div>
           )}
+
           {cameraActive && (
             <div className="mx-auto w-full max-w-md">
               <div className="relative h-[400px] overflow-hidden rounded-lg border">
@@ -188,22 +273,20 @@ const MobileScanPage: React.FC = () => {
               </div>
             </div>
           )}
+
           {capturedImage && (
             <div>
               <img
                 src={capturedImage}
-                alt="촬영된 이미지"
+                alt={imageSource === 'upload' ? '업로드된 이미지' : '촬영된 이미지'}
                 className="w-full max-w-md border"
               />
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <button
-                  onClick={() => {
-                    setCapturedImage(null);
-                    setOcrText('');
-                  }}
+                  onClick={retakeAction}
                   className="px-4 py-2 bg-gray-500 text-white rounded"
                 >
-                  다시 촬영
+                  {retakeLabel}
                 </button>
                 <button
                   onClick={saveImage}
@@ -213,14 +296,35 @@ const MobileScanPage: React.FC = () => {
                 </button>
                 <button
                   onClick={runMockOCR}
-                  className="px-4 py-2 bg-purple-500 text-white rounded"
+                  disabled={ocrLoading}
+                  className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  OCR 실행
+                  {ocrLoading ? '텍스트 추출 중…' : 'OCR 실행'}
+                </button>
+                <button
+                  onClick={resetImage}
+                  className="px-4 py-2 bg-slate-200 text-slate-800 rounded"
+                >
+                  처음으로
                 </button>
               </div>
             </div>
           )}
-          {ocrText && (
+
+          {ocrLoading && (
+            <div className="mt-6 flex items-center gap-2 text-slate-600">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+              <span>텍스트 추출 중…</span>
+            </div>
+          )}
+
+          {ocrError && !ocrLoading && (
+            <div className="mt-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-red-700">
+              {ocrError}
+            </div>
+          )}
+
+          {ocrText && !ocrLoading && (
             <div className="mt-6">
               <h2 className="text-xl font-medium">OCR 결과</h2>
               <textarea
@@ -229,8 +333,22 @@ const MobileScanPage: React.FC = () => {
                 className="w-full mt-2 p-2 border rounded"
                 rows={10}
               />
+              {onOpenEditor && (
+                <button
+                  onClick={() =>
+                    onOpenEditor({
+                      title: ocrText.split('\n')[0]?.slice(0, 40) || '제목 없음',
+                      content: ocrText,
+                    })
+                  }
+                  className="mt-3 px-4 py-2 bg-emerald-600 text-white rounded"
+                >
+                  편집기로 이동 →
+                </button>
+              )}
             </div>
           )}
+
           {errorMessage && (
             <div className="mt-4 text-red-500">{errorMessage}</div>
           )}
