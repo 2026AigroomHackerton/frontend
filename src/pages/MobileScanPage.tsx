@@ -1,38 +1,53 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const MobileScanPage: React.FC = () => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [ocrText, setOcrText] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const applyStreamToVideo = (mediaStream: MediaStream) => {
-    setStream(mediaStream);
-    setCameraActive(true);
-    setErrorMessage('');
-
-    // video 요소가 마운트된 후 stream 적용
-    setTimeout(() => {
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.play().catch((playError) => {
-          console.warn('비디오 재생 실패:', playError);
-        });
-      }
-    }, 100);
+  const attachStream = (node: HTMLVideoElement, mediaStream: MediaStream) => {
+    node.srcObject = mediaStream;
+    const playPromise = node.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((playError) => {
+        console.warn('비디오 재생 실패:', playError);
+      });
+    }
   };
 
+  const setVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      attachStream(node, streamRef.current);
+    }
+  }, []);
+
   const startCamera = async () => {
+    if (streamRef.current) {
+      return;
+    }
+
     const tryGetCamera = async (constraints: MediaStreamConstraints) => {
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      applyStreamToVideo(mediaStream);
+      streamRef.current = mediaStream;
+      setErrorMessage('');
+      setCameraActive(true);
+      if (videoRef.current) {
+        attachStream(videoRef.current, mediaStream);
+      }
     };
 
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrorMessage('이 브라우저는 카메라를 지원하지 않습니다. (HTTPS 또는 localhost 필요)');
+      return;
+    }
+
     try {
-      await tryGetCamera({ video: { facingMode: 'environment' } });
+      await tryGetCamera({ video: { facingMode: { ideal: 'environment' } } });
     } catch (error) {
       console.warn('후면 카메라 시작 실패, 기본 카메라로 재시도:', error);
       try {
@@ -44,16 +59,17 @@ const MobileScanPage: React.FC = () => {
     }
   };
 
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
+  const stopCamera = useCallback(() => {
+    const current = streamRef.current;
+    if (current) {
+      current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
-    setCameraActive(false);
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-  };
+    setCameraActive(false);
+  }, []);
 
   const captureImage = () => {
     if (videoRef.current && canvasRef.current) {
@@ -68,6 +84,15 @@ const MobileScanPage: React.FC = () => {
         setCapturedImage(dataUrl);
         stopCamera();
       }
+    }
+  };
+
+  const saveImage = () => {
+    if (capturedImage) {
+      // 실제로는 서버에 저장하거나 다운로드 기능 구현
+      // 현재는 mock으로 alert 표시
+      alert('이미지가 저장되었습니다!');
+      console.log('저장된 이미지:', capturedImage);
     }
   };
 
@@ -93,7 +118,7 @@ const MobileScanPage: React.FC = () => {
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [stopCamera]);
 
   const handleVideoCanPlay = () => {
     if (videoRef.current) {
@@ -117,26 +142,40 @@ const MobileScanPage: React.FC = () => {
             </button>
           )}
           {cameraActive && (
-            <div>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                onCanPlay={handleVideoCanPlay}
-                className="w-full max-w-md border"
-                style={{
-                  minHeight: '300px',
-                  maxHeight: '400px',
-                  width: '100%',
-                  backgroundColor: '#000',
-                  objectFit: 'cover'
-                }}
-              />
-              <div className="mt-4">
+            <div className="mx-auto w-full max-w-md">
+              <div className="relative h-[400px] overflow-hidden rounded-lg border">
+                <video
+                  ref={setVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  onCanPlay={handleVideoCanPlay}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ backgroundColor: '#000' }}
+                />
+                {/* 문서 스캔 가이드라인 overlay */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute inset-x-0 top-0 h-24 bg-black bg-opacity-50"></div>
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-black bg-opacity-50"></div>
+                  <div className="absolute inset-y-0 left-0 w-10 bg-black bg-opacity-50"></div>
+                  <div className="absolute inset-y-0 right-0 w-10 bg-black bg-opacity-50"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative w-64 h-80 border-2 border-white rounded-lg">
+                      <div className="absolute -top-1 -left-1 w-4 h-4 bg-white rounded-full border-2 border-gray-300"></div>
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-gray-300"></div>
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-white rounded-full border-2 border-gray-300"></div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white rounded-full border-2 border-gray-300"></div>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-4 py-2 bg-black bg-opacity-60 text-white rounded">
+                    모서리를 맞춰 문서를 촬영해 주세요.
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-center gap-2">
                 <button
                   onClick={captureImage}
-                  className="px-4 py-2 bg-green-500 text-white rounded mr-2"
+                  className="px-4 py-2 bg-green-500 text-white rounded"
                 >
                   촬영
                 </button>
@@ -156,13 +195,7 @@ const MobileScanPage: React.FC = () => {
                 alt="촬영된 이미지"
                 className="w-full max-w-md border"
               />
-              <div className="mt-4">
-                <button
-                  onClick={runMockOCR}
-                  className="px-4 py-2 bg-purple-500 text-white rounded mr-2"
-                >
-                  OCR 실행
-                </button>
+              <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => {
                     setCapturedImage(null);
@@ -171,6 +204,18 @@ const MobileScanPage: React.FC = () => {
                   className="px-4 py-2 bg-gray-500 text-white rounded"
                 >
                   다시 촬영
+                </button>
+                <button
+                  onClick={saveImage}
+                  className="px-4 py-2 bg-blue-500 text-white rounded"
+                >
+                  저장
+                </button>
+                <button
+                  onClick={runMockOCR}
+                  className="px-4 py-2 bg-purple-500 text-white rounded"
+                >
+                  OCR 실행
                 </button>
               </div>
             </div>
