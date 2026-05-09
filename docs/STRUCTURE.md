@@ -30,6 +30,12 @@ frontend/
     specs/
     diagrams/
     meeting-notes/
+  index.html
+  package.json
+  vite.config.ts
+  tailwind.config.ts
+  postcss.config.js
+  eslint.config.js
   .gitignore
   README.md
 ```
@@ -52,6 +58,8 @@ frontend/
 - `src/hooks`: 커스텀 훅 위치
 - `src/contexts`: 전역 상태 Context 위치
 - `src/styles`: 전역 스타일 또는 Tailwind 관련 스타일 위치
+- `src/main.tsx`: React 앱 진입점
+- `src/App.tsx`: 초기 앱 루트 컴포넌트. 실제 화면 구현 시 라우터와 페이지 구조로 확장 예정
 
 ## public
 
@@ -62,3 +70,12 @@ frontend/
 - `docs/specs`: 프론트엔드 화면 정의서, UI 명세, API 연동 메모 보관 위치
 - `docs/diagrams`: 화면 흐름도, 컴포넌트 구조도 보관 위치
 - `docs/meeting-notes`: 프론트엔드 회의록, 의사결정 기록 보관 위치
+
+## 설정 파일
+
+- `index.html`: Vite HTML 엔트리
+- `package.json`: npm 스크립트와 프론트엔드 의존성 관리
+- `vite.config.ts`: Vite 설정
+- `tailwind.config.ts`: Tailwind CSS 설정
+- `postcss.config.js`: PostCSS 설정
+- `eslint.config.js`: ESLint 설정

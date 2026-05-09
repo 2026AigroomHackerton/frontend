@@ -7,7 +7,7 @@
 이 레포는 해커톤 MVP의 사용자 화면을 담당합니다.
 추후 React + TypeScript + Tailwind CSS 기반으로 모바일 반응형 UI, 문서 업로드 흐름, OCR 흐름, 음성 명령 입력 UI, AI 문서 수정 화면을 구현할 예정입니다.
 
-현재 커밋은 실제 기능 코드 없이 팀원들이 작업을 시작할 수 있는 빈 폴더 구조와 협업 문서만 포함합니다.
+현재 레포는 Vite + React + TypeScript + Tailwind CSS 기반의 최소 실행 환경과 협업용 폴더 구조를 포함합니다.
 
 ## 주요 구현 예정 범위
 
@@ -35,6 +35,30 @@
 - `docs`: 프론트엔드 관련 명세, 다이어그램, 회의록 관리 위치
 
 자세한 구조는 `docs/STRUCTURE.md`를 확인합니다.
+
+## 환경 세팅
+
+필요 환경:
+- Node.js 22 이상 권장
+- npm 10 이상 권장
+
+설치:
+
+```bash
+npm install
+```
+
+개발 서버 실행:
+
+```bash
+npm run dev
+```
+
+빌드 확인:
+
+```bash
+npm run build
+```
 
 ## 작업 방법
 
