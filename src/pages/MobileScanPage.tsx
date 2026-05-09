@@ -9,20 +9,38 @@ const MobileScanPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      });
-      setStream(mediaStream);
+  const applyStreamToVideo = (mediaStream: MediaStream) => {
+    setStream(mediaStream);
+    setCameraActive(true);
+    setErrorMessage('');
+
+    // video 요소가 마운트된 후 stream 적용
+    setTimeout(() => {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        setCameraActive(true);
-        setErrorMessage('');
+        videoRef.current.play().catch((playError) => {
+          console.warn('비디오 재생 실패:', playError);
+        });
       }
+    }, 100);
+  };
+
+  const startCamera = async () => {
+    const tryGetCamera = async (constraints: MediaStreamConstraints) => {
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      applyStreamToVideo(mediaStream);
+    };
+
+    try {
+      await tryGetCamera({ video: { facingMode: 'environment' } });
     } catch (error) {
-      console.error('카메라 접근 실패:', error);
-      setErrorMessage('카메라 권한이 거부되었거나 카메라가 지원되지 않습니다.');
+      console.warn('후면 카메라 시작 실패, 기본 카메라로 재시도:', error);
+      try {
+        await tryGetCamera({ video: true });
+      } catch (fallbackError) {
+        console.error('카메라 접근 실패:', fallbackError);
+        setErrorMessage('카메라 권한이 거부되었거나 카메라가 지원되지 않습니다.');
+      }
     }
   };
 
@@ -77,6 +95,14 @@ const MobileScanPage: React.FC = () => {
     };
   }, []);
 
+  const handleVideoCanPlay = () => {
+    if (videoRef.current) {
+      videoRef.current.play().catch((playError) => {
+        console.warn('비디오 재생 실패:', playError);
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 px-6 py-10 text-slate-950">
       <section className="mx-auto max-w-3xl">
@@ -96,7 +122,16 @@ const MobileScanPage: React.FC = () => {
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
+                onCanPlay={handleVideoCanPlay}
                 className="w-full max-w-md border"
+                style={{
+                  minHeight: '300px',
+                  maxHeight: '400px',
+                  width: '100%',
+                  backgroundColor: '#000',
+                  objectFit: 'cover'
+                }}
               />
               <div className="mt-4">
                 <button
