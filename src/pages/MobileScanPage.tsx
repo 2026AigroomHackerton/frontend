@@ -329,9 +329,10 @@ const MobileScanPage: React.FC<MobileScanPageProps> = ({ onOpenEditor }) => {
               <h2 className="text-xl font-medium">OCR 결과</h2>
               <textarea
                 value={ocrText}
-                readOnly
+                onChange={(e) => setOcrText(e.target.value)}
                 className="w-full mt-2 p-2 border rounded"
                 rows={10}
+                placeholder="OCR 결과를 확인하고 수정할 수 있습니다."
               />
               {onOpenEditor && (
                 <button
